@@ -2,8 +2,9 @@
 import os
 import math
 import json
-import google.generativeai as genai
 from flask import Flask, render_template, request, jsonify
+from google import genai
+from google.genai import types
 
 app = Flask(__name__)
 
@@ -27,7 +28,7 @@ def calcular_kva_transformador(kw: float, fp: float, factor_reserva: float = 1.2
 def calcular_caida_tension(v_nominal: float, longitud_m: float, corriente_a: float,
                             seccion_mm2: float, factor_potencia: float = 0.85,
                             trifasico: bool = True) -> dict:
-    cond = 56  # Cu
+    cond = 56
     dv = (math.sqrt(3) * corriente_a * longitud_m) / (cond * seccion_mm2) if trifasico \
          else (2 * corriente_a * longitud_m) / (cond * seccion_mm2)
     dv_pct = (dv / v_nominal) * 100
@@ -54,62 +55,62 @@ TOOL_FUNCTIONS = {
     "calcular_banco_condensadores": calcular_banco_condensadores,
 }
 
-# ── Gemini tools ──────────────────────────────────────────────────────────────
-GEMINI_TOOLS = genai.protos.Tool(
+# ── Herramientas Gemini ───────────────────────────────────────────────────────
+GEMINI_TOOL = types.Tool(
     function_declarations=[
-        genai.protos.FunctionDeclaration(
+        types.FunctionDeclaration(
             name="calcular_cortocircuito",
             description="Calcula la corriente de cortocircuito trifásico (Icc) en kA dado la tensión en kV y la potencia de cortocircuito en MVA.",
-            parameters=genai.protos.Schema(
-                type=genai.protos.Type.OBJECT,
-                properties={
-                    "v_kv": genai.protos.Schema(type=genai.protos.Type.NUMBER, description="Tensión de barra en kV"),
-                    "mva_cc": genai.protos.Schema(type=genai.protos.Type.NUMBER, description="Potencia de cortocircuito en MVA"),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "v_kv": {"type": "number", "description": "Tensión de barra en kV"},
+                    "mva_cc": {"type": "number", "description": "Potencia de cortocircuito en MVA"},
                 },
-                required=["v_kv", "mva_cc"]
-            )
+                "required": ["v_kv", "mva_cc"],
+            },
         ),
-        genai.protos.FunctionDeclaration(
+        types.FunctionDeclaration(
             name="calcular_kva_transformador",
             description="Dimensiona un transformador en kVA dado la carga en kW, factor de potencia y reserva. Devuelve la potencia normalizada IEC.",
-            parameters=genai.protos.Schema(
-                type=genai.protos.Type.OBJECT,
-                properties={
-                    "kw": genai.protos.Schema(type=genai.protos.Type.NUMBER, description="Potencia activa en kW"),
-                    "fp": genai.protos.Schema(type=genai.protos.Type.NUMBER, description="Factor de potencia entre 0 y 1"),
-                    "factor_reserva": genai.protos.Schema(type=genai.protos.Type.NUMBER, description="Factor de reserva, default 1.25"),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "kw": {"type": "number", "description": "Potencia activa en kW"},
+                    "fp": {"type": "number", "description": "Factor de potencia entre 0 y 1"},
+                    "factor_reserva": {"type": "number", "description": "Factor de reserva, default 1.25"},
                 },
-                required=["kw", "fp"]
-            )
+                "required": ["kw", "fp"],
+            },
         ),
-        genai.protos.FunctionDeclaration(
+        types.FunctionDeclaration(
             name="calcular_caida_tension",
-            description="Calcula caída de tensión en V y % para conductor de cobre. Verifica cumplimiento del límite IEC 60364 del 4%.",
-            parameters=genai.protos.Schema(
-                type=genai.protos.Type.OBJECT,
-                properties={
-                    "v_nominal": genai.protos.Schema(type=genai.protos.Type.NUMBER, description="Tensión nominal en V (ej: 400)"),
-                    "longitud_m": genai.protos.Schema(type=genai.protos.Type.NUMBER, description="Longitud del conductor en metros"),
-                    "corriente_a": genai.protos.Schema(type=genai.protos.Type.NUMBER, description="Corriente de diseño en A"),
-                    "seccion_mm2": genai.protos.Schema(type=genai.protos.Type.NUMBER, description="Sección del conductor en mm²"),
-                    "factor_potencia": genai.protos.Schema(type=genai.protos.Type.NUMBER, description="Factor de potencia, default 0.85"),
-                    "trifasico": genai.protos.Schema(type=genai.protos.Type.BOOLEAN, description="True si el circuito es trifásico"),
+            description="Calcula caída de tensión en V y % para conductor de cobre. Verifica límite IEC 60364 del 4%.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "v_nominal": {"type": "number", "description": "Tensión nominal en V"},
+                    "longitud_m": {"type": "number", "description": "Longitud del conductor en metros"},
+                    "corriente_a": {"type": "number", "description": "Corriente de diseño en A"},
+                    "seccion_mm2": {"type": "number", "description": "Sección del conductor en mm²"},
+                    "factor_potencia": {"type": "number", "description": "Factor de potencia, default 0.85"},
+                    "trifasico": {"type": "boolean", "description": "True si el circuito es trifásico"},
                 },
-                required=["v_nominal", "longitud_m", "corriente_a", "seccion_mm2"]
-            )
+                "required": ["v_nominal", "longitud_m", "corriente_a", "seccion_mm2"],
+            },
         ),
-        genai.protos.FunctionDeclaration(
+        types.FunctionDeclaration(
             name="calcular_banco_condensadores",
-            description="Calcula los kVAR de condensadores necesarios para corregir el factor de potencia desde fp_actual hasta fp_objetivo.",
-            parameters=genai.protos.Schema(
-                type=genai.protos.Type.OBJECT,
-                properties={
-                    "kw": genai.protos.Schema(type=genai.protos.Type.NUMBER, description="Potencia activa de la instalación en kW"),
-                    "fp_actual": genai.protos.Schema(type=genai.protos.Type.NUMBER, description="Factor de potencia actual"),
-                    "fp_objetivo": genai.protos.Schema(type=genai.protos.Type.NUMBER, description="Factor de potencia objetivo, default 0.95"),
+            description="Calcula los kVAR de condensadores para corregir el factor de potencia.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "kw": {"type": "number", "description": "Potencia activa en kW"},
+                    "fp_actual": {"type": "number", "description": "Factor de potencia actual"},
+                    "fp_objetivo": {"type": "number", "description": "Factor de potencia objetivo, default 0.95"},
                 },
-                required=["kw", "fp_actual"]
-            )
+                "required": ["kw", "fp_actual"],
+            },
         ),
     ]
 )
@@ -164,7 +165,6 @@ la automatización avanzada y la optimización energética.
 • Compensación reactiva, dimensionamiento transformadores
 • Selección VFDs, iluminación industrial
 • Arc Flash (NFPA 70E / IEEE 1584-2018), armónicos K-factor
-• Coordinación de protecciones TCC
 
 CÓMO RESPONDER:
 • Usa lenguaje técnico preciso, explica el razonamiento paso a paso.
@@ -175,7 +175,7 @@ CÓMO RESPONDER:
 • Responde siempre en español con terminología estándar de la industria eléctrica.
 """
 
-# ── API route ─────────────────────────────────────────────────────────────────
+# ── Rutas Flask ───────────────────────────────────────────────────────────────
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -194,30 +194,38 @@ def chat():
         return jsonify({'error': 'Mensaje vacío', 'success': False}), 400
 
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(
-            model_name='gemini-2.0-flash',
-            system_instruction=SYSTEM_PROMPT,
-            tools=[GEMINI_TOOLS]
-        )
+        client = genai.Client(api_key=api_key)
 
-        # Convertir historial al formato Gemini
-        gemini_history = []
+        # Construir contenidos con historial
+        contents = []
         for msg in history:
             role = 'user' if msg['role'] == 'user' else 'model'
-            gemini_history.append({'role': role, 'parts': [msg['content']]})
+            contents.append(types.Content(role=role, parts=[types.Part(text=msg['content'])]))
+        contents.append(types.Content(role='user', parts=[types.Part(text=user_message)]))
 
-        chat_session = model.start_chat(history=gemini_history)
-        response = chat_session.send_message(user_message)
+        config = types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+            tools=[GEMINI_TOOL],
+        )
+
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=contents,
+            config=config,
+        )
 
         # Loop de tool use
         tool_calls_made = []
-        for _ in range(5):  # máximo 5 iteraciones
-            tool_parts = [p for p in response.parts if hasattr(p, 'function_call') and p.function_call.name]
+        for _ in range(5):
+            tool_parts = [
+                p for p in response.candidates[0].content.parts
+                if p.function_call and p.function_call.name
+            ]
             if not tool_parts:
                 break
 
-            responses_parts = []
+            contents.append(response.candidates[0].content)
+            result_parts = []
             for part in tool_parts:
                 fn_name = part.function_call.name
                 fn_args = dict(part.function_call.args)
@@ -225,16 +233,21 @@ def chat():
                 if fn:
                     result = fn(**fn_args)
                     tool_calls_made.append({'name': fn_name, 'args': fn_args, 'result': result})
-                    responses_parts.append(
-                        genai.protos.Part(
-                            function_response=genai.protos.FunctionResponse(
+                    result_parts.append(
+                        types.Part(
+                            function_response=types.FunctionResponse(
                                 name=fn_name,
                                 response={'result': result}
                             )
                         )
                     )
-            if responses_parts:
-                response = chat_session.send_message(responses_parts)
+
+            contents.append(types.Content(role='user', parts=result_parts))
+            response = client.models.generate_content(
+                model='gemini-2.0-flash',
+                contents=contents,
+                config=config,
+            )
 
         return jsonify({
             'response': response.text,
