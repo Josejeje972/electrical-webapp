@@ -175,6 +175,28 @@ la automatización avanzada y la optimización energética.
 • Selección VFDs, iluminación industrial
 • Arc Flash (NFPA 70E / IEEE 1584-2018), armónicos K-factor
 
+DIAGRAMAS CON MERMAID:
+Cuando el usuario pida un diagrama, esquema, unifilar, topología o representación visual,
+genera el diagrama usando sintaxis Mermaid dentro de bloques ```mermaid```.
+Tipos útiles:
+- graph TD / LR: unifilares, topología de red, distribución MT/BT
+- flowchart TD: lógica de automatización, secuencia de arranque
+- sequenceDiagram: comunicación entre equipos (PLC-SCADA-field)
+Ejemplo unifilar simplificado:
+```mermaid
+graph TD
+    RED[Red MT 13.2kV] --> TR1[Trafo 1 1000kVA Dyn11]
+    RED --> TR2[Trafo 2 1000kVA Dyn11]
+    TR1 --> BT1[Barra BT-1 400V]
+    TR2 --> BT2[Barra BT-2 400V]
+    BT1 <-->|Interconexión| BT2
+    BT1 --> MCC1[MCC Línea 1]
+    BT1 --> TDS1[TDS Servicios]
+    BT2 --> MCC2[MCC Línea 2]
+```
+Cuando el usuario suba una foto de un tablero, esquema o instalación y pida un diagrama,
+analiza la imagen y genera el diagrama Mermaid correspondiente.
+
 CÓMO RESPONDER:
 • Usa lenguaje técnico preciso, explica el razonamiento paso a paso.
 • Muestra fórmulas, sustituye valores y da resultados con unidades.
@@ -267,6 +289,36 @@ def chat():
 
     except Exception as e:
         return jsonify({'error': str(e), 'success': False}), 500
+
+
+@app.route('/api/calcular', methods=['POST'])
+def calcular():
+    data = request.get_json()
+    tool_name = data.get('tool')
+    params = data.get('params', {})
+    fn = TOOL_FUNCTIONS.get(tool_name)
+    if not fn:
+        return jsonify({'error': 'Herramienta no encontrada', 'success': False}), 400
+    try:
+        # Convertir tipos correctamente
+        import inspect
+        sig = inspect.signature(fn)
+        converted = {}
+        for k, v in params.items():
+            if k in sig.parameters:
+                ann = sig.parameters[k].annotation
+                if ann == bool or ann == 'bool':
+                    converted[k] = str(v).lower() in ('true', '1', 'yes')
+                elif ann == float or ann == 'float':
+                    converted[k] = float(v)
+                else:
+                    converted[k] = v
+            else:
+                converted[k] = v
+        result = fn(**converted)
+        return jsonify({'result': result, 'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e), 'success': False}), 400
 
 
 if __name__ == '__main__':

@@ -6,34 +6,42 @@
   <title>Bot Eléctrico Industrial</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <style>
     html, body { height: 100%; overflow: hidden; }
     #messages { overflow-y: auto; scroll-behavior: smooth; }
 
-    .md h1, .md h2, .md h3 { font-weight: 700; margin: 0.75rem 0 0.4rem; }
-    .md h1 { font-size: 1.1rem; }
-    .md h2 { font-size: 1rem; }
-    .md h3 { font-size: 0.95rem; }
-    .md p  { margin: 0.4rem 0; line-height: 1.6; }
-    .md ul, .md ol { margin: 0.4rem 0 0.4rem 1.2rem; }
-    .md li { margin: 0.2rem 0; line-height: 1.5; }
-    .md strong { font-weight: 700; }
-    .md em { font-style: italic; }
-    .md hr { border-color: #e5e7eb; margin: 0.75rem 0; }
-    .md code { background: #f3f4f6; padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.85em; font-family: monospace; }
-    .md pre  { background: #f3f4f6; border-radius: 8px; padding: 0.75rem; overflow-x: auto; margin: 0.5rem 0; }
-    .md pre code { background: none; padding: 0; }
-    .md table { width: 100%; border-collapse: collapse; margin: 0.6rem 0; font-size: 0.85rem; }
-    .md th { background: #eff6ff; padding: 0.4rem 0.6rem; text-align: left; border: 1px solid #dbeafe; font-weight: 600; }
-    .md td { padding: 0.35rem 0.6rem; border: 1px solid #e5e7eb; }
-    .md tr:nth-child(even) td { background: #f9fafb; }
+    .md h1,.md h2,.md h3 { font-weight:700; margin:.75rem 0 .4rem; }
+    .md h1 { font-size:1.1rem; } .md h2 { font-size:1rem; } .md h3 { font-size:.95rem; }
+    .md p { margin:.4rem 0; line-height:1.6; }
+    .md ul,.md ol { margin:.4rem 0 .4rem 1.2rem; }
+    .md li { margin:.2rem 0; line-height:1.5; }
+    .md strong { font-weight:700; } .md em { font-style:italic; }
+    .md hr { border-color:#e5e7eb; margin:.75rem 0; }
+    .md code { background:#f3f4f6; padding:.1rem .35rem; border-radius:4px; font-size:.85em; font-family:monospace; }
+    .md pre { background:#f3f4f6; border-radius:8px; padding:.75rem; overflow-x:auto; margin:.5rem 0; }
+    .md pre code { background:none; padding:0; }
+    .md table { width:100%; border-collapse:collapse; margin:.6rem 0; font-size:.85rem; }
+    .md th { background:#eff6ff; padding:.4rem .6rem; text-align:left; border:1px solid #dbeafe; font-weight:600; }
+    .md td { padding:.35rem .6rem; border:1px solid #e5e7eb; }
+    .md tr:nth-child(even) td { background:#f9fafb; }
 
-    @keyframes blink { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
-    .dot { animation: blink 1.4s infinite; }
-    .dot:nth-child(2) { animation-delay: 0.2s; }
-    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
+    .dot { animation:blink 1.4s infinite; }
+    .dot:nth-child(2) { animation-delay:.2s; }
+    .dot:nth-child(3) { animation-delay:.4s; }
+
+    .calc-tab-btn { transition:all .2s; }
+    .calc-tab-btn.active { background:#1d4ed8; color:#fff; }
+    .calc-content { display:none; }
+    .calc-content.active { display:block; }
+
+    /* Mermaid diagrams */
+    .mermaid-wrap { background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1rem; margin:.5rem 0; overflow-x:auto; text-align:center; }
+    .mermaid-wrap svg { max-width:100%; height:auto; }
   </style>
 </head>
 <body class="bg-gray-100 flex flex-col h-screen">
@@ -48,39 +56,39 @@
       </div>
     </div>
     <button onclick="newChat()"
-      class="text-xs bg-blue-600 hover:bg-blue-500 active:bg-blue-800 px-3 py-1.5 rounded-lg transition-colors">
+      class="text-xs bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition-colors">
       Nuevo chat
     </button>
   </header>
 
   <!-- Mensajes -->
-  <div id="messages" class="flex-1 px-3 py-4 space-y-3">
+  <div id="messages" class="flex-1 px-3 py-4 space-y-3 pb-4">
     <div class="flex justify-start">
       <div class="bg-white rounded-2xl rounded-tl-sm shadow-sm px-4 py-3 max-w-[88%] text-sm text-gray-700">
         <p class="font-semibold text-blue-700 mb-2">¡Hola! Soy tu asistente de ingeniería eléctrica industrial.</p>
-        <p class="text-gray-500 mb-2">Puedo ayudarte con:</p>
-        <ul class="space-y-0.5 text-gray-600">
+        <ul class="space-y-0.5 text-gray-600 mb-2">
           <li>⚡ Distribución MT/BT y transformadores</li>
           <li>🏭 Salas eléctricas y normativas IEC/NCh</li>
           <li>🤖 PLCs, SCADA y automatización</li>
-          <li>🔢 Cálculos: cortocircuito, caída de tensión, factor de potencia</li>
-          <li>📷 Análisis de fotos: tableros, equipos, placas, esquemas</li>
+          <li>📐 Diagramas unifilares automáticos</li>
+          <li>📷 Análisis de fotos → genera diagramas</li>
+          <li>🔢 Calculadoras (botón 🧮 abajo a la derecha)</li>
         </ul>
-        <p class="mt-2 text-gray-400 text-xs">Escribe tu consulta o adjunta una foto 👇</p>
+        <p class="text-gray-400 text-xs">Escribe tu consulta, adjunta una foto o abre las calculadoras 👇</p>
       </div>
     </div>
   </div>
 
-  <!-- Preview de imagen seleccionada -->
+  <!-- Preview imagen -->
   <div id="imgPreviewBar" class="hidden bg-white border-t border-gray-200 px-4 py-2 flex-shrink-0">
     <div class="flex items-center gap-2 max-w-3xl mx-auto">
-      <img id="imgPreview" src="" alt="preview" class="h-14 w-14 object-cover rounded-lg border border-gray-200">
+      <img id="imgPreview" src="" alt="" class="h-14 w-14 object-cover rounded-lg border border-gray-200">
       <div class="flex-1 min-w-0">
         <p id="imgName" class="text-xs text-gray-600 truncate"></p>
         <p class="text-xs text-gray-400">Imagen adjunta</p>
       </div>
       <button onclick="clearImage()" class="text-gray-400 hover:text-red-500 p-1">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
         </svg>
       </button>
@@ -88,31 +96,21 @@
   </div>
 
   <!-- Input -->
-  <div class="bg-white border-t border-gray-200 px-3 py-2.5 flex-shrink-0" style="padding-bottom: max(0.625rem, env(safe-area-inset-bottom));">
+  <div class="bg-white border-t border-gray-200 px-3 py-2.5 flex-shrink-0" style="padding-bottom:max(0.625rem,env(safe-area-inset-bottom))">
     <div class="flex gap-2 items-end max-w-3xl mx-auto">
-
-      <!-- Botón adjuntar foto -->
       <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleImage(event)">
       <button onclick="document.getElementById('fileInput').click()"
         class="w-10 h-10 text-gray-400 hover:text-blue-600 flex items-center justify-center flex-shrink-0 mb-0.5 transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
           <polyline points="21 15 16 10 5 21"/>
         </svg>
       </button>
-
-      <textarea
-        id="input"
-        rows="1"
-        placeholder="Escribe tu consulta o describe la foto..."
+      <textarea id="input" rows="1" placeholder="Consulta técnica, pide un diagrama, o describe la foto..."
         class="flex-1 border border-gray-300 rounded-2xl px-4 py-2.5 text-sm resize-none focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 leading-relaxed"
-        style="max-height: 120px;"
-        onkeydown="handleKey(event)"
-        oninput="autoResize(this)"
-      ></textarea>
-
+        style="max-height:120px" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
       <button id="sendBtn" onclick="send()"
-        class="w-10 h-10 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-full flex items-center justify-center flex-shrink-0 transition-colors disabled:opacity-40 mb-0.5">
+        class="w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center flex-shrink-0 transition-colors disabled:opacity-40 mb-0.5">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
           <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z"/>
         </svg>
@@ -120,18 +118,154 @@
     </div>
   </div>
 
-  <script>
-    let history = [];
-    let pendingImage = null; // { base64, mimeType, name }
+  <!-- Botón flotante calculadoras -->
+  <button onclick="openCalc()" title="Calculadoras"
+    class="fixed bottom-24 right-4 w-13 h-13 w-12 h-12 bg-amber-500 hover:bg-amber-600 text-white text-xl rounded-full shadow-lg flex items-center justify-center z-10 transition-colors">
+    🧮
+  </button>
 
+  <!-- ══════════════════ MODAL CALCULADORAS ══════════════════ -->
+  <div id="calcModal" class="hidden fixed inset-0 z-30 flex items-end">
+    <div class="absolute inset-0 bg-black/40" onclick="closeCalc()"></div>
+    <div class="relative bg-white w-full rounded-t-2xl shadow-xl z-40" style="max-height:85vh; overflow-y:auto">
+      <div class="sticky top-0 bg-white px-4 pt-4 pb-2 border-b border-gray-100">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="font-bold text-gray-800 text-base">🧮 Calculadoras Eléctricas</h2>
+          <button onclick="closeCalc()" class="text-gray-400 hover:text-gray-700 text-xl leading-none">✕</button>
+        </div>
+        <!-- Tabs -->
+        <div class="flex gap-1 overflow-x-auto pb-1">
+          <button onclick="showTab(0)" id="tab0" class="calc-tab-btn active text-xs px-3 py-1.5 rounded-full border border-blue-700 whitespace-nowrap font-medium">Cortocircuito</button>
+          <button onclick="showTab(1)" id="tab1" class="calc-tab-btn text-xs px-3 py-1.5 rounded-full border border-gray-300 text-gray-600 whitespace-nowrap font-medium">Transformador</button>
+          <button onclick="showTab(2)" id="tab2" class="calc-tab-btn text-xs px-3 py-1.5 rounded-full border border-gray-300 text-gray-600 whitespace-nowrap font-medium">Caída de V</button>
+          <button onclick="showTab(3)" id="tab3" class="calc-tab-btn text-xs px-3 py-1.5 rounded-full border border-gray-300 text-gray-600 whitespace-nowrap font-medium">Condensadores</button>
+        </div>
+      </div>
+
+      <div class="px-4 py-4">
+
+        <!-- Tab 0: Cortocircuito -->
+        <div id="calcContent0" class="calc-content active space-y-3">
+          <p class="text-xs text-gray-500">Icc trifásico simétrico según IEC 60909</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-gray-700 block mb-1">Tensión (kV)</label>
+              <input id="cc_v" type="number" step="0.1" placeholder="13.2" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-700 block mb-1">Scc (MVA)</label>
+              <input id="cc_mva" type="number" step="1" placeholder="500" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
+            </div>
+          </div>
+          <button onclick="calcular('calcular_cortocircuito', {v_kv: +$('#cc_v'), mva_cc: +$('#cc_mva')}, 0)"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">Calcular</button>
+          <div id="res0" class="hidden"></div>
+        </div>
+
+        <!-- Tab 1: Transformador -->
+        <div id="calcContent1" class="calc-content space-y-3">
+          <p class="text-xs text-gray-500">Dimensionamiento según IEC 60076 con potencias normalizadas</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-gray-700 block mb-1">Carga (kW)</label>
+              <input id="tr_kw" type="number" step="1" placeholder="800" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-700 block mb-1">Factor potencia</label>
+              <input id="tr_fp" type="number" step="0.01" min="0.1" max="1" placeholder="0.85" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-gray-700 block mb-1">Factor reserva (default 1.25)</label>
+            <input id="tr_res" type="number" step="0.05" placeholder="1.25" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
+          </div>
+          <button onclick="calcular('calcular_kva_transformador', {kw: +$('#tr_kw'), fp: +$('#tr_fp'), factor_reserva: +($$('#tr_res') || 1.25)}, 1)"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">Calcular</button>
+          <div id="res1" class="hidden"></div>
+        </div>
+
+        <!-- Tab 2: Caída de tensión -->
+        <div id="calcContent2" class="calc-content space-y-3">
+          <p class="text-xs text-gray-500">Conductor Cu, límite IEC 60364: 4%</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-gray-700 block mb-1">Tensión nominal (V)</label>
+              <input id="dt_v" type="number" placeholder="400" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-700 block mb-1">Longitud (m)</label>
+              <input id="dt_l" type="number" placeholder="150" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-700 block mb-1">Corriente (A)</label>
+              <input id="dt_i" type="number" placeholder="200" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-700 block mb-1">Sección (mm²)</label>
+              <input id="dt_s" type="number" placeholder="95" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-700 block mb-1">Factor potencia</label>
+              <input id="dt_fp" type="number" step="0.01" placeholder="0.85" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-700 block mb-1">Sistema</label>
+              <select id="dt_tri" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 bg-white">
+                <option value="true">Trifásico</option>
+                <option value="false">Monofásico</option>
+              </select>
+            </div>
+          </div>
+          <button onclick="calcular('calcular_caida_tension', {v_nominal:+$('#dt_v'), longitud_m:+$('#dt_l'), corriente_a:+$('#dt_i'), seccion_mm2:+$('#dt_s'), factor_potencia:+($$('#dt_fp')||0.85), trifasico: document.getElementById('dt_tri').value==='true'}, 2)"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">Calcular</button>
+          <div id="res2" class="hidden"></div>
+        </div>
+
+        <!-- Tab 3: Condensadores -->
+        <div id="calcContent3" class="calc-content space-y-3">
+          <p class="text-xs text-gray-500">Compensación reactiva según IEC 61921</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-gray-700 block mb-1">Potencia activa (kW)</label>
+              <input id="cond_kw" type="number" placeholder="500" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-700 block mb-1">FP actual</label>
+              <input id="cond_fp1" type="number" step="0.01" placeholder="0.72" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-gray-700 block mb-1">FP objetivo (default 0.95)</label>
+            <input id="cond_fp2" type="number" step="0.01" placeholder="0.95" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
+          </div>
+          <button onclick="calcular('calcular_banco_condensadores', {kw:+$('#cond_kw'), fp_actual:+$('#cond_fp1'), fp_objetivo:+($$('#cond_fp2')||0.95)}, 3)"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">Calcular</button>
+          <div id="res3" class="hidden"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
+    marked.setOptions({ breaks: true, gfm: true });
+
+    let history = [];
+    let pendingImage = null;
+
+    // ── Helpers ─────────────────────────────────────────────────────────────
+    function $(id) { return document.getElementById(id.replace('#','')).value; }
+    function $$(id) { const v = document.getElementById(id.replace('#','')).value; return v || null; }
+
+    // ── Imagen ───────────────────────────────────────────────────────────────
     function handleImage(event) {
       const file = event.target.files[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (e) => {
         const dataUrl = e.target.result;
-        const base64 = dataUrl.split(',')[1];
-        pendingImage = { base64, mimeType: file.type, name: file.name };
+        pendingImage = { base64: dataUrl.split(',')[1], mimeType: file.type, name: file.name };
         document.getElementById('imgPreview').src = dataUrl;
         document.getElementById('imgName').textContent = file.name;
         document.getElementById('imgPreviewBar').classList.remove('hidden');
@@ -146,18 +280,16 @@
       document.getElementById('imgPreview').src = '';
     }
 
+    // ── Chat ─────────────────────────────────────────────────────────────────
     async function send() {
       const input = document.getElementById('input');
       const msg = input.value.trim();
       if (!msg && !pendingImage) return;
 
       const imageToSend = pendingImage;
-      input.value = '';
-      autoResize(input);
-      clearImage();
-      setBusy(true);
+      input.value = ''; autoResize(input); clearImage(); setBusy(true);
 
-      addBubble('user', msg || '📷 (imagen)', imageToSend ? imageToSend.base64 : null);
+      addBubble('user', msg || '(imagen adjunta)', imageToSend ? imageToSend.base64 : null);
       const typingId = addTyping();
 
       const historyToSend = [...history];
@@ -165,15 +297,10 @@
 
       try {
         const body = { message: msg, history: historyToSend };
-        if (imageToSend) {
-          body.image_base64 = imageToSend.base64;
-          body.image_mime = imageToSend.mimeType;
-        }
+        if (imageToSend) { body.image_base64 = imageToSend.base64; body.image_mime = imageToSend.mimeType; }
 
         const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
         });
         const data = await res.json();
         removeTyping(typingId);
@@ -182,20 +309,15 @@
           addBubble('assistant', data.response, null, data.tool_calls || []);
           history.push({ role: 'assistant', content: data.response });
         } else {
-          addError(data.error || 'Error desconocido');
-          history.pop();
+          addError(data.error || 'Error desconocido'); history.pop();
         }
       } catch (err) {
-        removeTyping(typingId);
-        addError('Sin conexión: ' + err.message);
-        history.pop();
+        removeTyping(typingId); addError('Sin conexión: ' + err.message); history.pop();
       }
-
-      setBusy(false);
-      input.focus();
+      setBusy(false); input.focus();
     }
 
-    function addBubble(role, text, imageBase64 = null, toolCalls = []) {
+    async function addBubble(role, text, imageBase64 = null, toolCalls = []) {
       const isUser = role === 'user';
       const wrap = document.createElement('div');
       wrap.className = 'flex ' + (isUser ? 'justify-end' : 'justify-start');
@@ -210,13 +332,10 @@
           img.className = 'rounded-xl mb-2 max-h-48 w-auto';
           bubble.appendChild(img);
         }
-        if (text && text !== '📷 (imagen)') {
+        if (text && text !== '(imagen adjunta)') {
           const t = document.createElement('p');
-          t.className = 'whitespace-pre-wrap break-words';
-          t.textContent = text;
+          t.className = 'whitespace-pre-wrap break-words'; t.textContent = text;
           bubble.appendChild(t);
-        } else if (!imageBase64) {
-          bubble.textContent = text;
         }
       } else {
         bubble.className = 'bg-white shadow-sm rounded-2xl rounded-tl-sm px-4 py-3 max-w-[92%] text-sm text-gray-800';
@@ -236,11 +355,54 @@
         md.innerHTML = marked.parse(text);
         md.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
         bubble.appendChild(md);
+
+        // Renderizar Mermaid
+        const mermaidBlocks = md.querySelectorAll('code.language-mermaid');
+        for (const block of mermaidBlocks) {
+          try {
+            const code = block.textContent.trim();
+            const id = 'mmd-' + Math.random().toString(36).substr(2, 8);
+            const { svg } = await mermaid.render(id, code);
+            const div = document.createElement('div');
+            div.className = 'mermaid-wrap';
+            div.innerHTML = svg;
+            block.closest('pre').replaceWith(div);
+          } catch(e) { /* deja el bloque de código original */ }
+        }
+
+        // Botón exportar PDF
+        const btnRow = document.createElement('div');
+        btnRow.className = 'flex justify-end mt-2';
+        const pdfBtn = document.createElement('button');
+        pdfBtn.className = 'text-xs text-gray-400 hover:text-blue-600 flex items-center gap-1 transition-colors';
+        pdfBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg> Exportar PDF`;
+        pdfBtn.onclick = () => exportPdf(bubble);
+        btnRow.appendChild(pdfBtn);
+        bubble.appendChild(btnRow);
       }
 
       wrap.appendChild(bubble);
       document.getElementById('messages').appendChild(wrap);
       scrollBottom();
+    }
+
+    function exportPdf(element) {
+      const clone = element.cloneNode(true);
+      // Quitar el botón del PDF del clon
+      const btn = clone.querySelector('button');
+      if (btn) btn.closest('div').remove();
+
+      const opt = {
+        margin: 10,
+        filename: 'respuesta-electrica.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'padding:10px; font-family:sans-serif; font-size:13px; max-width:700px;';
+      wrapper.appendChild(clone);
+      html2pdf().set(opt).from(wrapper).save();
     }
 
     function addError(msg) {
@@ -254,52 +416,122 @@
     function addTyping() {
       const id = 'typing-' + Date.now();
       const wrap = document.createElement('div');
-      wrap.id = id;
-      wrap.className = 'flex justify-start';
-      wrap.innerHTML = `
-        <div class="bg-white shadow-sm rounded-2xl rounded-tl-sm px-5 py-4">
-          <div class="flex gap-1.5 items-center">
-            <span class="dot w-2 h-2 bg-gray-400 rounded-full inline-block"></span>
-            <span class="dot w-2 h-2 bg-gray-400 rounded-full inline-block"></span>
-            <span class="dot w-2 h-2 bg-gray-400 rounded-full inline-block"></span>
-          </div>
-        </div>`;
+      wrap.id = id; wrap.className = 'flex justify-start';
+      wrap.innerHTML = `<div class="bg-white shadow-sm rounded-2xl rounded-tl-sm px-5 py-4"><div class="flex gap-1.5 items-center"><span class="dot w-2 h-2 bg-gray-400 rounded-full inline-block"></span><span class="dot w-2 h-2 bg-gray-400 rounded-full inline-block"></span><span class="dot w-2 h-2 bg-gray-400 rounded-full inline-block"></span></div></div>`;
       document.getElementById('messages').appendChild(wrap);
-      scrollBottom();
-      return id;
+      scrollBottom(); return id;
     }
 
-    function removeTyping(id) {
-      const el = document.getElementById(id);
-      if (el) el.remove();
-    }
+    function removeTyping(id) { const el = document.getElementById(id); if (el) el.remove(); }
 
     function newChat() {
-      history = [];
-      clearImage();
+      history = []; clearImage();
       const msgs = document.getElementById('messages');
       while (msgs.children.length > 1) msgs.removeChild(msgs.lastChild);
     }
 
-    function setBusy(busy) {
-      document.getElementById('sendBtn').disabled = busy;
+    function setBusy(b) { document.getElementById('sendBtn').disabled = b; }
+    function scrollBottom() { const m = document.getElementById('messages'); m.scrollTop = m.scrollHeight; }
+    function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }
+    function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
+
+    // ── Calculadoras ─────────────────────────────────────────────────────────
+    function openCalc()  { document.getElementById('calcModal').classList.remove('hidden'); }
+    function closeCalc() { document.getElementById('calcModal').classList.add('hidden'); }
+
+    function showTab(n) {
+      [0,1,2,3].forEach(i => {
+        document.getElementById('calcContent'+i).classList.toggle('active', i===n);
+        const btn = document.getElementById('tab'+i);
+        btn.classList.toggle('active', i===n);
+        btn.classList.toggle('border-blue-700', i===n);
+        btn.classList.toggle('border-gray-300', i!==n);
+        btn.classList.toggle('text-gray-600', i!==n);
+      });
     }
 
-    function scrollBottom() {
-      const msgs = document.getElementById('messages');
-      msgs.scrollTop = msgs.scrollHeight;
+    async function calcular(tool, params, tabIdx) {
+      const resDiv = document.getElementById('res' + tabIdx);
+      resDiv.className = 'text-xs text-gray-500 italic';
+      resDiv.textContent = 'Calculando...';
+
+      // Validar que todos los params requeridos tengan valor
+      for (const [k, v] of Object.entries(params)) {
+        if (v === 0 && k !== 'factor_potencia' && k !== 'fp_objetivo') {
+          resDiv.className = 'text-xs text-red-500';
+          resDiv.textContent = 'Completa todos los campos requeridos.';
+          return;
+        }
+      }
+
+      try {
+        const res = await fetch('/api/calcular', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ tool, params })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          const result = data.result;
+          const labels = {
+            Icc_trifasico_kA: 'Icc trifásico', V_kV: 'Tensión', Scc_MVA: 'Potencia cc',
+            kVA_carga: 'kVA carga', kVA_con_reserva: 'kVA con reserva', kVA_normalizado_IEC: 'kVA normalizado IEC',
+            factor_reserva: 'Factor reserva', caida_V: 'Caída (V)', caida_pct: 'Caída (%)',
+            limite_IEC_pct: 'Límite IEC (%)', cumple: 'Cumple IEC',
+            Q_condensadores_kVAR: 'Q condensadores', fp_inicial: 'FP inicial',
+            fp_objetivo: 'FP objetivo', kW_carga: 'Carga (kW)',
+          };
+          const units = {
+            Icc_trifasico_kA: 'kA', V_kV: 'kV', Scc_MVA: 'MVA',
+            kVA_carga: 'kVA', kVA_con_reserva: 'kVA', kVA_normalizado_IEC: 'kVA',
+            caida_V: 'V', caida_pct: '%', limite_IEC_pct: '%',
+            Q_condensadores_kVAR: 'kVAR',
+          };
+
+          let html = '<div class="mt-2 bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-1">';
+          for (const [k, v] of Object.entries(result)) {
+            const label = labels[k] || k;
+            const unit = units[k] || '';
+            let display = v;
+            if (k === 'cumple') {
+              display = v
+                ? '<span class="text-green-600 font-semibold">✓ Cumple</span>'
+                : '<span class="text-red-600 font-semibold">✗ No cumple</span>';
+            } else {
+              display = `<span class="font-semibold text-blue-800">${v} ${unit}</span>`;
+            }
+            html += `<div class="flex justify-between"><span class="text-gray-600">${label}</span>${display}</div>`;
+          }
+
+          // Botón enviar al chat
+          const resultText = Object.entries(result).map(([k,v]) => `${labels[k]||k}: ${v} ${units[k]||''}`).join(', ');
+          html += `</div><button onclick="sendCalcToChat('${tool}', \`${resultText}\`)" class="mt-2 w-full text-xs bg-white border border-blue-300 text-blue-700 hover:bg-blue-50 py-1.5 rounded-xl transition-colors">💬 Preguntar al bot sobre este resultado</button>`;
+
+          resDiv.className = '';
+          resDiv.innerHTML = html;
+        } else {
+          resDiv.className = 'text-xs text-red-500';
+          resDiv.textContent = 'Error: ' + data.error;
+        }
+      } catch(e) {
+        resDiv.className = 'text-xs text-red-500';
+        resDiv.textContent = 'Error de conexión.';
+      }
     }
 
-    function handleKey(e) {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+    function sendCalcToChat(tool, resultText) {
+      closeCalc();
+      const names = {
+        calcular_cortocircuito: 'cortocircuito',
+        calcular_kva_transformador: 'transformador',
+        calcular_caida_tension: 'caída de tensión',
+        calcular_banco_condensadores: 'banco de condensadores',
+      };
+      const input = document.getElementById('input');
+      input.value = `Obtuve este resultado de ${names[tool] || tool}: ${resultText}. ¿Puedes explicarlo y darme recomendaciones?`;
+      autoResize(input);
+      input.focus();
     }
-
-    function autoResize(el) {
-      el.style.height = 'auto';
-      el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-    }
-
-    marked.setOptions({ breaks: true, gfm: true });
   </script>
 </body>
 </html>
