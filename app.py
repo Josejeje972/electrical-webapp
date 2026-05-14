@@ -249,7 +249,7 @@ def chat():
             messages.append({"role": "user", "content": user_message})
 
         # Modelo según si hay imagen o no
-        model = "llama-3.2-90b-vision-preview" if image_base64 else "llama-3.3-70b-versatile"
+        model = "meta-llama/llama-4-scout-17b-16e-instruct" if image_base64 else "llama-3.3-70b-versatile"
 
         # Loop de tool use
         tool_calls_made = []
