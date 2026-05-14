@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Bot Eléctrico Industrial</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    #messages { overflow-y: auto; scroll-behavior: smooth; }
+
+    /* Markdown en burbujas del asistente */
+    .md h1, .md h2, .md h3 { font-weight: 700; margin: 0.75rem 0 0.4rem; }
+    .md h1 { font-size: 1.1rem; }
+    .md h2 { font-size: 1rem; }
+    .md h3 { font-size: 0.95rem; }
+    .md p  { margin: 0.4rem 0; line-height: 1.6; }
+    .md ul, .md ol { margin: 0.4rem 0 0.4rem 1.2rem; }
+    .md li { margin: 0.2rem 0; line-height: 1.5; }
+    .md strong { font-weight: 700; }
+    .md em { font-style: italic; }
+    .md hr { border-color: #e5e7eb; margin: 0.75rem 0; }
+    .md code { background: #f3f4f6; padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.85em; font-family: monospace; }
+    .md pre  { background: #f3f4f6; border-radius: 8px; padding: 0.75rem; overflow-x: auto; margin: 0.5rem 0; }
+    .md pre code { background: none; padding: 0; }
+    .md table { width: 100%; border-collapse: collapse; margin: 0.6rem 0; font-size: 0.85rem; }
+    .md th { background: #eff6ff; padding: 0.4rem 0.6rem; text-align: left; border: 1px solid #dbeafe; font-weight: 600; }
+    .md td { padding: 0.35rem 0.6rem; border: 1px solid #e5e7eb; }
+    .md tr:nth-child(even) td { background: #f9fafb; }
+
+    /* Animación typing */
+    @keyframes blink { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
+    .dot { animation: blink 1.4s infinite; }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+  </style>
+</head>
+<body class="bg-gray-100 flex flex-col h-screen">
+
+  <!-- Header -->
+  <header class="bg-blue-700 text-white px-4 py-3 flex items-center justify-between shadow-md flex-shrink-0">
+    <div class="flex items-center gap-2.5">
+      <span class="text-2xl leading-none">⚡</span>
+      <div>
+        <p class="font-bold text-base leading-tight">Bot Eléctrico Industrial</p>
+        <p class="text-blue-200 text-xs">MT · BT · Automatización · Normativas</p>
+      </div>
+    </div>
+    <button onclick="newChat()"
+      class="text-xs bg-blue-600 hover:bg-blue-500 active:bg-blue-800 px-3 py-1.5 rounded-lg transition-colors">
+      Nuevo chat
+    </button>
+  </header>
+
+  <!-- Mensajes -->
+  <div id="messages" class="flex-1 px-3 py-4 space-y-3">
+
+    <!-- Bienvenida -->
+    <div class="flex justify-start">
+      <div class="bg-white rounded-2xl rounded-tl-sm shadow-sm px-4 py-3 max-w-[88%] text-sm text-gray-700">
+        <p class="font-semibold text-blue-700 mb-2">¡Hola! Soy tu asistente de ingeniería eléctrica industrial.</p>
+        <p class="text-gray-500 mb-2">Puedo ayudarte con:</p>
+        <ul class="space-y-0.5 text-gray-600">
+          <li>⚡ Distribución MT/BT y transformadores</li>
+          <li>🏭 Salas eléctricas y normativas IEC/NCh</li>
+          <li>🤖 PLCs, SCADA y automatización</li>
+          <li>🔢 Cálculos: cortocircuito, caída de tensión, factor de potencia, condensadores</li>
+          <li>🧴 Requisitos industria alimentaria (ATEX, IP65/69K)</li>
+        </ul>
+        <p class="mt-2 text-gray-400 text-xs">Escribe tu consulta abajo 👇</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Input -->
+  <div class="bg-white border-t border-gray-200 px-3 py-2.5 flex-shrink-0" style="padding-bottom: max(0.625rem, env(safe-area-inset-bottom));">
+    <div class="flex gap-2 items-end max-w-3xl mx-auto">
+      <textarea
+        id="input"
+        rows="1"
+        placeholder="Escribe tu consulta técnica..."
+        class="flex-1 border border-gray-300 rounded-2xl px-4 py-2.5 text-sm resize-none focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 leading-relaxed"
+        style="max-height: 120px;"
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+      <button id="sendBtn" onclick="send()"
+        class="w-10 h-10 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-full flex items-center justify-center flex-shrink-0 transition-colors disabled:opacity-40 mb-0.5">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+          <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    let history = [];
+
+    async function send() {
+      const input = document.getElementById('input');
+      const msg = input.value.trim();
+      if (!msg) return;
+
+      input.value = '';
+      autoResize(input);
+      setBusy(true);
+
+      addBubble('user', msg);
+      const typingId = addTyping();
+
+      // historial sin el mensaje actual
+      const historyToSend = [...history];
+      history.push({ role: 'user', content: msg });
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: msg, history: historyToSend })
+        });
+        const data = await res.json();
+        removeTyping(typingId);
+
+        if (data.success) {
+          addBubble('assistant', data.response, data.tool_calls || []);
+          history.push({ role: 'assistant', content: data.response });
+        } else {
+          addError(data.error || 'Error desconocido');
+          history.pop();
+        }
+      } catch (err) {
+        removeTyping(typingId);
+        addError('Sin conexión con el servidor: ' + err.message);
+        history.pop();
+      }
+
+      setBusy(false);
+      input.focus();
+    }
+
+    function addBubble(role, text, toolCalls = []) {
+      const isUser = role === 'user';
+      const wrap = document.createElement('div');
+      wrap.className = 'flex ' + (isUser ? 'justify-end' : 'justify-start');
+
+      const bubble = document.createElement('div');
+
+      if (isUser) {
+        bubble.className = 'bg-blue-600 text-white rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-[88%] text-sm whitespace-pre-wrap break-words';
+        bubble.textContent = text;
+      } else {
+        bubble.className = 'bg-white shadow-sm rounded-2xl rounded-tl-sm px-4 py-3 max-w-[92%] text-sm text-gray-800';
+
+        if (toolCalls.length > 0) {
+          const tc = document.createElement('div');
+          tc.className = 'mb-3 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs font-mono text-gray-700';
+          tc.innerHTML = toolCalls.map(t =>
+            `<div class="mb-1"><span class="text-amber-700 font-semibold">🔧 ${t.name}</span></div>` +
+            `<pre class="text-gray-600 overflow-x-auto">${JSON.stringify(t.result, null, 2)}</pre>`
+          ).join('<hr class="border-amber-200 my-2">');
+          bubble.appendChild(tc);
+        }
+
+        const md = document.createElement('div');
+        md.className = 'md';
+        md.innerHTML = marked.parse(text);
+        md.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
+        bubble.appendChild(md);
+      }
+
+      wrap.appendChild(bubble);
+      document.getElementById('messages').appendChild(wrap);
+      scrollBottom();
+    }
+
+    function addError(msg) {
+      const wrap = document.createElement('div');
+      wrap.className = 'flex justify-center';
+      wrap.innerHTML = `<div class="text-xs text-red-600 bg-red-50 border border-red-200 px-3 py-1.5 rounded-full">❌ ${msg}</div>`;
+      document.getElementById('messages').appendChild(wrap);
+      scrollBottom();
+    }
+
+    function addTyping() {
+      const id = 'typing-' + Date.now();
+      const wrap = document.createElement('div');
+      wrap.id = id;
+      wrap.className = 'flex justify-start';
+      wrap.innerHTML = `
+        <div class="bg-white shadow-sm rounded-2xl rounded-tl-sm px-5 py-4">
+          <div class="flex gap-1.5 items-center">
+            <span class="dot w-2 h-2 bg-gray-400 rounded-full inline-block"></span>
+            <span class="dot w-2 h-2 bg-gray-400 rounded-full inline-block"></span>
+            <span class="dot w-2 h-2 bg-gray-400 rounded-full inline-block"></span>
+          </div>
+        </div>`;
+      document.getElementById('messages').appendChild(wrap);
+      scrollBottom();
+      return id;
+    }
+
+    function removeTyping(id) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }
+
+    function newChat() {
+      history = [];
+      const msgs = document.getElementById('messages');
+      while (msgs.children.length > 1) msgs.removeChild(msgs.lastChild);
+    }
+
+    function setBusy(busy) {
+      document.getElementById('sendBtn').disabled = busy;
+    }
+
+    function scrollBottom() {
+      const msgs = document.getElementById('messages');
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function handleKey(e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+    }
+
+    function autoResize(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    }
+
+    marked.setOptions({ breaks: true, gfm: true });
+  </script>
+</body>
+</html>
