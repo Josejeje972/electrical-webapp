@@ -3,8 +3,7 @@ import os
 import math
 import json
 from flask import Flask, render_template, request, jsonify
-from google import genai
-from google.genai import types
+from groq import Groq
 
 app = Flask(__name__)
 
@@ -55,13 +54,14 @@ TOOL_FUNCTIONS = {
     "calcular_banco_condensadores": calcular_banco_condensadores,
 }
 
-# ── Herramientas Gemini ───────────────────────────────────────────────────────
-GEMINI_TOOL = types.Tool(
-    function_declarations=[
-        types.FunctionDeclaration(
-            name="calcular_cortocircuito",
-            description="Calcula la corriente de cortocircuito trifásico (Icc) en kA dado la tensión en kV y la potencia de cortocircuito en MVA.",
-            parameters={
+# ── Definición de herramientas (formato OpenAI/Groq) ─────────────────────────
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "calcular_cortocircuito",
+            "description": "Calcula la corriente de cortocircuito trifásico (Icc) en kA dado la tensión en kV y la potencia de cortocircuito en MVA.",
+            "parameters": {
                 "type": "object",
                 "properties": {
                     "v_kv": {"type": "number", "description": "Tensión de barra en kV"},
@@ -69,11 +69,14 @@ GEMINI_TOOL = types.Tool(
                 },
                 "required": ["v_kv", "mva_cc"],
             },
-        ),
-        types.FunctionDeclaration(
-            name="calcular_kva_transformador",
-            description="Dimensiona un transformador en kVA dado la carga en kW, factor de potencia y reserva. Devuelve la potencia normalizada IEC.",
-            parameters={
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "calcular_kva_transformador",
+            "description": "Dimensiona un transformador en kVA dado la carga en kW, factor de potencia y reserva. Devuelve la potencia normalizada IEC.",
+            "parameters": {
                 "type": "object",
                 "properties": {
                     "kw": {"type": "number", "description": "Potencia activa en kW"},
@@ -82,11 +85,14 @@ GEMINI_TOOL = types.Tool(
                 },
                 "required": ["kw", "fp"],
             },
-        ),
-        types.FunctionDeclaration(
-            name="calcular_caida_tension",
-            description="Calcula caída de tensión en V y % para conductor de cobre. Verifica límite IEC 60364 del 4%.",
-            parameters={
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "calcular_caida_tension",
+            "description": "Calcula caída de tensión en V y % para conductor de cobre. Verifica límite IEC 60364 del 4%.",
+            "parameters": {
                 "type": "object",
                 "properties": {
                     "v_nominal": {"type": "number", "description": "Tensión nominal en V"},
@@ -98,11 +104,14 @@ GEMINI_TOOL = types.Tool(
                 },
                 "required": ["v_nominal", "longitud_m", "corriente_a", "seccion_mm2"],
             },
-        ),
-        types.FunctionDeclaration(
-            name="calcular_banco_condensadores",
-            description="Calcula los kVAR de condensadores para corregir el factor de potencia.",
-            parameters={
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "calcular_banco_condensadores",
+            "description": "Calcula los kVAR de condensadores para corregir el factor de potencia.",
+            "parameters": {
                 "type": "object",
                 "properties": {
                     "kw": {"type": "number", "description": "Potencia activa en kW"},
@@ -111,9 +120,9 @@ GEMINI_TOOL = types.Tool(
                 },
                 "required": ["kw", "fp_actual"],
             },
-        ),
-    ]
-)
+        },
+    },
+]
 
 # ── System prompt ─────────────────────────────────────────────────────────────
 SYSTEM_PROMPT = """Eres un experto en ingeniería eléctrica industrial con más de 20 años de experiencia
@@ -182,9 +191,9 @@ def index():
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    api_key = os.environ.get('GOOGLE_API_KEY')
+    api_key = os.environ.get('GROQ_API_KEY')
     if not api_key:
-        return jsonify({'error': 'GOOGLE_API_KEY no configurada en el servidor.', 'success': False}), 500
+        return jsonify({'error': 'GROQ_API_KEY no configurada en el servidor.', 'success': False}), 500
 
     data = request.get_json()
     history = data.get('history', [])
@@ -194,63 +203,46 @@ def chat():
         return jsonify({'error': 'Mensaje vacío', 'success': False}), 400
 
     try:
-        client = genai.Client(api_key=api_key)
+        client = Groq(api_key=api_key)
 
-        # Construir contenidos con historial
-        contents = []
+        # Construir mensajes con historial
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
         for msg in history:
-            role = 'user' if msg['role'] == 'user' else 'model'
-            contents.append(types.Content(role=role, parts=[types.Part(text=msg['content'])]))
-        contents.append(types.Content(role='user', parts=[types.Part(text=user_message)]))
-
-        config = types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
-            tools=[GEMINI_TOOL],
-        )
-
-        response = client.models.generate_content(
-            model='gemini-2.0-flash',
-            contents=contents,
-            config=config,
-        )
+            messages.append({"role": msg['role'], "content": msg['content']})
+        messages.append({"role": "user", "content": user_message})
 
         # Loop de tool use
         tool_calls_made = []
         for _ in range(5):
-            tool_parts = [
-                p for p in response.candidates[0].content.parts
-                if p.function_call and p.function_call.name
-            ]
-            if not tool_parts:
-                break
-
-            contents.append(response.candidates[0].content)
-            result_parts = []
-            for part in tool_parts:
-                fn_name = part.function_call.name
-                fn_args = dict(part.function_call.args)
-                fn = TOOL_FUNCTIONS.get(fn_name)
-                if fn:
-                    result = fn(**fn_args)
-                    tool_calls_made.append({'name': fn_name, 'args': fn_args, 'result': result})
-                    result_parts.append(
-                        types.Part(
-                            function_response=types.FunctionResponse(
-                                name=fn_name,
-                                response={'result': result}
-                            )
-                        )
-                    )
-
-            contents.append(types.Content(role='user', parts=result_parts))
-            response = client.models.generate_content(
-                model='gemini-2.0-flash',
-                contents=contents,
-                config=config,
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=messages,
+                tools=TOOLS,
+                tool_choice="auto",
+                max_tokens=4096,
             )
 
+            msg = response.choices[0].message
+
+            if response.choices[0].finish_reason != "tool_calls":
+                break
+
+            # Ejecutar herramientas
+            messages.append(msg)
+            for tc in msg.tool_calls:
+                fn_name = tc.function.name
+                fn_args = json.loads(tc.function.arguments)
+                fn = TOOL_FUNCTIONS.get(fn_name)
+                result = fn(**fn_args) if fn else {"error": "herramienta no encontrada"}
+                tool_calls_made.append({'name': fn_name, 'args': fn_args, 'result': result})
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tc.id,
+                    "content": json.dumps(result, ensure_ascii=False),
+                })
+
         return jsonify({
-            'response': response.text,
+            'response': response.choices[0].message.content,
             'tool_calls': tool_calls_made,
             'success': True
         })
