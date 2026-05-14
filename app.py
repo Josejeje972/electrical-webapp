@@ -206,16 +206,34 @@ def chat():
         client = Groq(api_key=api_key)
 
         # Construir mensajes con historial
+        image_base64 = data.get('image_base64')
+        image_mime = data.get('image_mime', 'image/jpeg')
+
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
         for msg in history:
             messages.append({"role": msg['role'], "content": msg['content']})
-        messages.append({"role": "user", "content": user_message})
+
+        # Último mensaje: texto + imagen opcional
+        if image_base64:
+            user_content = []
+            if user_message.strip():
+                user_content.append({"type": "text", "text": user_message})
+            user_content.append({
+                "type": "image_url",
+                "image_url": {"url": f"data:{image_mime};base64,{image_base64}"}
+            })
+            messages.append({"role": "user", "content": user_content})
+        else:
+            messages.append({"role": "user", "content": user_message})
+
+        # Modelo según si hay imagen o no
+        model = "llama-3.2-90b-vision-preview" if image_base64 else "llama-3.3-70b-versatile"
 
         # Loop de tool use
         tool_calls_made = []
         for _ in range(5):
             response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model=model,
                 messages=messages,
                 tools=TOOLS,
                 tool_choice="auto",
